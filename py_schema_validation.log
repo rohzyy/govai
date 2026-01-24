@@ -1,0 +1,35 @@
+[INFO] Checking Schema Validation...
+[INFO] Found 6 officers.
+[TEST] Officer: Rakesh (ID: 1)
+       Raw CreatedAt: 2026-01-02 06:35:15.807168 (Type: <class 'datetime.datetime'>)
+       Dept ID: 2
+   [PASS] Valid!
+[TEST] Officer: Auto Assign Test Officer (ID: 2)
+       Raw CreatedAt: 2026-01-02 13:01:07.306822 (Type: <class 'datetime.datetime'>)
+       Dept ID: 9
+   [PASS] Valid!
+[TEST] Officer: Clean Officer (ID: 3)
+       Raw CreatedAt: None (Type: <class 'NoneType'>)
+       Dept ID: 17
+   [FAIL] Validation Error: 1 validation error for OfficerResponse
+created_at
+  Input should be a valid datetime [type=datetime_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.12/v/datetime_type
+[TEST] Officer: Clean Officer (ID: 4)
+       Raw CreatedAt: None (Type: <class 'NoneType'>)
+       Dept ID: 17
+   [FAIL] Validation Error: 1 validation error for OfficerResponse
+created_at
+  Input should be a valid datetime [type=datetime_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.12/v/datetime_type
+[TEST] Officer: Clean Officer (ID: 5)
+       Raw CreatedAt: None (Type: <class 'NoneType'>)
+       Dept ID: 17
+   [FAIL] Validation Error: 1 validation error for OfficerResponse
+created_at
+  Input should be a valid datetime [type=datetime_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.12/v/datetime_type
+[TEST] Officer: Ujwal Vaste (ID: 6)
+       Raw CreatedAt: 2026-01-02 16:53:01.908225 (Type: <class 'datetime.datetime'>)
+       Dept ID: 9
+   [PASS] Valid!
