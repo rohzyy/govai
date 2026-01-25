@@ -15,7 +15,7 @@ export default function NewComplaintPage() {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [location, setLocation] = useState('');
-    const [priority, setPriority] = useState('');
+
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -56,10 +56,7 @@ export default function NewComplaintPage() {
                 const res = await api.post('/ai/analyze', { description: debouncedDescription });
                 setAiAnalysis(res.data);
 
-                // Auto-suggest priority if user hasn't selected one
-                if (!priority && res.data.confidence > 60) {
-                    setPriority(res.data.priority);
-                }
+
             } catch (err) {
                 console.error("AI Analysis failed silently:", err);
                 // Fail-safe: User doesn't need to know AI failed
@@ -124,7 +121,7 @@ export default function NewComplaintPage() {
                 title,
                 description,
                 location: location || "Unknown Location",
-                priority: priority || undefined  // Send only if manually selected
+
             });
             // Success!
             toast.success("Complaint submitted successfully!");
@@ -201,25 +198,7 @@ export default function NewComplaintPage() {
                             />
                         </div>
 
-                        <div className="space-y-1.5">
-                            <label className="block text-sm font-medium text-gray-300 ml-1">
-                                Priority (Optional)
-                            </label>
-                            <select
-                                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all"
-                                value={priority}
-                                onChange={(e) => setPriority(e.target.value)}
-                            >
-                                <option value="" className="bg-gray-900">🤖 Auto-detect (AI will classify)</option>
-                                <option value="Low" className="bg-gray-900">🟢 Low - Minor issues</option>
-                                <option value="Medium" className="bg-gray-900">🟡 Medium - Standard complaints</option>
-                                <option value="High" className="bg-gray-900">🟠 High - Urgent matters</option>
-                                <option value="Critical" className="bg-gray-900">🔴 Critical - Emergency</option>
-                            </select>
-                            <p className="text-xs text-gray-500 ml-1">
-                                Leave as auto-detect for AI to analyze urgency from your description
-                            </p>
-                        </div>
+
 
                         <div className="flex gap-4 pt-4">
                             <Button
