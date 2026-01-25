@@ -44,7 +44,7 @@ export function Navbar({ showAuth = true }: NavbarProps) {
                                     <Button variant="secondary" size="sm">Log In</Button>
                                 </Link>
                                 <Link href="/login">
-                                    <Button variant="default" size="sm">Get Started</Button>
+                                    <Button variant="primary" size="sm">Get Started</Button>
                                 </Link>
                             </>
                         ) : (
