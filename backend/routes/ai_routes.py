@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from typing import List
 from ..ai_utils import generate_analysis_response
 
-router = APIRouter(prefix="/ai", tags=["AI"])
+router = APIRouter(prefix="/helper", tags=["Helper"])
 
 class AIAnalysisRequest(BaseModel):
     description: str
@@ -16,7 +16,7 @@ class AIAnalysisResponse(BaseModel):
     confidence: int
     reasoning: List[str]
 
-@router.post("/analyze", response_model=AIAnalysisResponse)
+@router.post("/scan-text", response_model=AIAnalysisResponse)
 async def analyze_complaint_endpoint(payload: AIAnalysisRequest):
     """
     Analyzes complaint description in real-time.

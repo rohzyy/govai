@@ -18,7 +18,13 @@ origins = ["http://localhost:3000"]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    # allow_origins=["*"], # INVALID with allow_credentials=True
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:5000", 
+        "http://127.0.0.1:5000"
+    ],
     allow_credentials=True, # Critical for Cookies
     allow_methods=["*"],
     allow_headers=["*", "Authorization", "Content-Type", "Access-Control-Allow-Origin"],
@@ -60,6 +66,13 @@ from .utils.startup_check import validate_routes
 @app.on_event("startup")
 async def startup_event():
     # validate_routes(app)
+    from .config import settings
+    key = settings.GEMINI_API_KEY
+    print(f"[STARTUP] Loaded API Key: ...{key[-4:] if key else 'None'}")
+    if not key or "AIzaSyCX" in key:
+        print("[STARTUP] Placeholder key detection: ACTIVE (AI will be skipped)")
+    else:
+        print("[STARTUP] Placeholder key detection: INACTIVE (AI will run)")
     pass
 
 

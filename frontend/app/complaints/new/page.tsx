@@ -44,31 +44,41 @@ export default function NewComplaintPage() {
 
     // AI Analysis Effect
     useEffect(() => {
+        let isActive = true;
+
         const analyze = async () => {
             if (!debouncedDescription || debouncedDescription.length < 10) {
-                setAiAnalysis(null);
+                if (isActive) setAiAnalysis(null);
                 return;
             }
 
-            setAnalyzing(true);
+            if (isActive) setAnalyzing(true);
             try {
                 // Non-blocking AI Call
-                const res = await api.post('/ai/analyze', { description: debouncedDescription });
-                setAiAnalysis(res.data);
+                // Cancel if component unmounted or dependency changed
+                if (!isActive) return;
 
-                // Auto-suggest priority if user hasn't selected one
-                if (!priority && res.data.confidence > 60) {
-                    setPriority(res.data.priority);
+                const res = await api.post('/helper/scan-text', { description: debouncedDescription });
+
+                if (isActive) {
+                    setAiAnalysis(res.data);
+                    // Auto-suggest priority if user hasn't selected one
+                    if (!priority && res.data.confidence > 60) {
+                        setPriority(res.data.priority);
+                    }
                 }
             } catch (err) {
                 console.error("AI Analysis failed silently:", err);
-                // Fail-safe: User doesn't need to know AI failed
             } finally {
-                setAnalyzing(false);
+                if (isActive) setAnalyzing(false);
             }
         };
 
         analyze();
+
+        return () => {
+            isActive = false;
+        };
     }, [debouncedDescription]);
 
     // Voice Input Logic

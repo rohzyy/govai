@@ -15,7 +15,7 @@ ANALYTICS_CACHE = {
 }
 CACHE_DURATION_SECONDS = 300  # 5 Minutes
 
-@router.get("/analytics/overview")
+@router.get("/stats/overview")
 def get_public_analytics_overview(db: Session = Depends(database.get_db)):
     """
     Public Endpoint: Aggregated Government Impact Metrics.

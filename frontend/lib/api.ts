@@ -1,12 +1,16 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000', // Direct Backend Access
+    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000', // Direct Backend Access (Use IP to avoid localhost IPv6 issues)
     withCredentials: true, // IMPORTANT: Sends Cookies
     headers: {
         'Content-Type': 'application/json',
     },
+    timeout: 10000, // 10 Seconds Timeout
 });
+
+console.log("[DEBUG] API Base URL:", process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000');
+
 
 // Helper to read CSRF Cookie
 function getCookie(name: string): string | undefined {

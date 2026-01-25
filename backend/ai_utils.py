@@ -66,13 +66,18 @@ INDIA_GOVT_DEPARTMENTS = {
 
 # Priority Classification Keywords
 PRIORITY_KEYWORDS = {
-    "Critical": ["urgent", "emergency", "danger", "life-threatening", "accident", "immediate",
-                 "critical", "fatal", "death", "fire", "explosion", "collapse", "crisis"],
-    "High": ["broken", "severe", "major", "hazardous", "leak", "overflow", "unsafe", 
-             "open wire", "burst", "flooding", "hanging wire", "exposed", "serious"],
+    "Critical": ["life-threatening", "fatal", "death", "fire", "explosion", "crisis", "electrocution", 
+                 "assault", "attack", "violence", "rape", "murder", "crime", "shock", "active current"],
+    "High": ["urgent", "emergency", "danger", "accident", "immediate", "critical", "collapse",
+             "leak", "open wire", "burst", "flooding", "hanging wire", 
+             "exposed", "biohazard", "toxic", "medical waste", 
+             "harassment", "abuse", "unsafe", "threat", "stalking", "eve teasing", "security", "cave-in"],
     "Medium": ["damaged", "poor", "irregular", "not working", "malfunctioning",
-               "blocked", "clogged", "overflowing", "dirty"],
+               "blocked", "clogged", "overflowing", "dirty", "garbage", "trash", "waste", "smell", "stench", "not functioning"],
 }
+
+# Generic Intensifiers (Do not assign Priority directly, but boost relevant categories)
+RISK_INTENSIFIERS = ["severe", "major", "hazardous", "serious", "high risk", "heavy"]
 
 def classify_priority(text: str) -> str:
     """
@@ -130,17 +135,142 @@ def categorize_department(text: str) -> dict:
     
     return detected_dept
 
+def classify_complaint_with_llm(text: str, location: str = "Unknown") -> dict:
+    """
+    Uses Gemini AI to intelligently classify complaint priority and category.
+    Focuses on contextual severity (e.g., 'garbage' is not critical even if 'urgent' is used).
+    """
+    try:
+        import google.generativeai as genai
+        import json
+        from .config import settings
+        
+        if not settings.GEMINI_API_KEY or "AIzaSyCX" in settings.GEMINI_API_KEY:
+            print("[AI] Skipping LLM: Missing or Placeholder API Key")
+            return None
+            
+        print(f"[AI] Calling Gemini API with key ending in ...{settings.GEMINI_API_KEY[-4:]}")
+        genai.configure(api_key=settings.GEMINI_API_KEY)
+        model = genai.GenerativeModel('gemini-pro')
+        
+        prompt = f"""
+        Analyze this citizen grievance for a government database.
+        
+        Complaint: "{text}"
+        Location: "{location}"
+        
+        Task:
+        1. Identify the Government Department (e.g., Sanitation, Roads, Electricity).
+        2. Assign Priority (Critical, High, Medium, Low).
+           - CRITICAL: Life-threatening (Live wire, fire, massive flood, explosion).
+           - HIGH: Major disruption/hazard (Pipeline burst, open manhole, road collapse).
+           - MEDIUM: Standard maintenance (Garbage, pothole, street light, park maintenance, foul smell).
+           - LOW: Minor cosmetic issues.
+           
+           IMPORTANT: Do NOT be fooled by user frustration words like "Urgent", "Immediate", "Dying from smell". 
+           Judge ONLY based on the actual physical hazard. 
+           
+           SPECIFIC RULES:
+           - "Garbage/Waste" is ALWAYS MEDIUM unless it mentions 'Medical Waste', 'Chemicals', or 'Blocking Traffic' (then High). 
+           - "Foul Smell" is MEDIUM (Quality of Life), not High/Critical.
+           - "Live Wire/Fire/Public Safety Threats" are ALWAYS CRITICAL.
+           - "Harassment/Stalking/Assault" are HIGH or CRITICAL.
+
+           Example: "Garbage smelling like death" -> Medium (Health risk, but not immediate death).
+           Example: "Live wire sending sparks" -> Critical (Immediate death risk).
+           
+        3. Provide brief reasoning (1 sentence).
+        
+        Return ONLY valid JSON:
+        {{
+            "category": "Department Name",
+            "priority": "Critical/High/Medium/Low",
+            "confidence": 0.0-1.0,
+            "reasoning": "Reason here"
+        }}
+        """
+        
+        response = model.generate_content(prompt)
+        content = response.text.strip()
+        
+        # Clean markdown code blocks if present
+        if content.startswith("```json"):
+            content = content[7:]
+        if content.endswith("```"):
+            content = content[:-3]
+            
+        result = json.loads(content.strip())
+        
+        # Validate keys
+        if "priority" in result and "category" in result:
+            return result
+        return None
+        
+    except Exception as e:
+        print(f"[AI] LLM Classification Failed: {e}")
+        return None
+
+
 def analyze_complaint(text: str):
     """
     Comprehensive complaint analysis with priority, category, sentiment, and department.
     """
     blob = TextBlob(text)
     
-    # 1. Department & Category Detection
-    dept_info = categorize_department(text)
+    # 1. Try AI Classification first (Smart Contextual)
+    ai_result = classify_complaint_with_llm(text)
     
-    # 2. Priority Classification
-    priority = classify_priority(text)
+    if ai_result:
+        # Map AI Category to internal keys if possible, or use AI's raw string if close
+        # For safety, let's look up our rigid map to find the best officer match for the AI category
+        best_dept_match = None
+        for name, info in INDIA_GOVT_DEPARTMENTS.items():
+            if name.lower() in ai_result["category"].lower() or ai_result["category"].lower() in name.lower():
+                best_dept_match = {
+                    "category": name, 
+                    "full_name": info["full_name"],
+                    "officer": info["officer"],
+                    "confidence": ai_result.get("confidence", 0.9)
+                }
+                break
+        
+        if best_dept_match:
+            dept_info = best_dept_match
+        else:
+            # Fallback for dept but keep AI priority
+            dept_info = categorize_department(text)
+            
+        priority = ai_result["priority"]
+        confidence = ai_result.get("confidence", 0.9)
+        
+    else:
+        # Fallback to Rule-Based
+        dept_info = categorize_department(text)
+        priority = classify_priority(text)
+        
+        # Smart Heuristic 1: If category is Public Safety, bump Low/Medium to High
+        if dept_info["category"] == "Public Safety & Law Enforcement" and priority in ["Low", "Medium"]:
+             priority = "High"
+
+        if dept_info["category"] == "Electricity & Power Supply" and priority == "Low":
+             if any(w in text.lower() for w in ["wire", "spark", "current", "pole", "hanging"]):
+                 priority = "High"
+
+        if dept_info["category"] == "Traffic & Road Safety" and priority == "Low":
+             if any(w in text.lower() for w in ["signal", "light", "not working", "stuck", "jam"]):
+                 priority = "High"
+
+        # Smart Heuristic 4: Risk Intensifiers only boost dangerous categories
+        # Categories allowed to jump to High on adjectives alone: Roads (accident risk), Electricity, Safety
+        DANGEROUS_CATEGORIES = ["Roads & Public Works", "Electricity & Power Supply", "Public Safety & Law Enforcement", "Traffic & Road Safety"]
+        
+        if dept_info["category"] in DANGEROUS_CATEGORIES and priority == "Medium":
+            if any(w in text.lower() for w in RISK_INTENSIFIERS):
+                priority = "High"
+                
+        # Sanitation/Water/Parks should NOT jump to High just because of "serious/major" (unless specific High keywords matched)
+             
+        confidence = dept_info["confidence"]
     
     # 3. Sentiment Analysis (-1.0 to 1.0)
     sentiment = blob.sentiment.polarity
@@ -161,7 +291,7 @@ def analyze_complaint(text: str):
         "priority": priority,
         "urgency": urgency,  # Legacy field
         "sentiment_score": sentiment,
-        "confidence": dept_info["confidence"]
+        "confidence": confidence
     }
 
 

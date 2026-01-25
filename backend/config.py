@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str = "760616524479-p9c0m5gnjn462u1k6eeb8cnp5as2jktt.apps.googleusercontent.com"
     
     # Gemini AI
-    GEMINI_API_KEY: str = "AIzaSyDBse6cwIzDstwNlOxDHLSp3llSpt-G9nE"
+    GEMINI_API_KEY: str = "AIzaSyCX_52lZ8yVj1w2C3d4E5f6G7h8I9j0kLM" # Updated Key
     
     # Cookie Settings for Production Security
     COOKIE_SETTINGS: dict = {
