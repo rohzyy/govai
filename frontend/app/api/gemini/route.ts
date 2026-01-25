@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateGeminiResponse } from '@/lib/gemini';
+import { askGemini } from '@/lib/gemini';
 
 /**
  * CRASH-PROOF GEMINI AI ROUTE
@@ -53,7 +53,8 @@ export async function POST(request: NextRequest) {
         // Attempt Gemini call
         let aiResponse: string | null = null;
         try {
-            aiResponse = await generateGeminiResponse(message, context || 'general');
+             // context is ignored as askGemini doesn't support it yet
+            aiResponse = await askGemini(message);
         } catch (aiError: any) {
             console.error('[POST /api/gemini] AI error:', aiError?.message);
         }

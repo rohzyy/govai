@@ -29,7 +29,6 @@ export async function POST(request: NextRequest) {
         try {
             const response = await backendAPI.post(
                 '/women-safety/panic',
-                '/women-safety/panic',
                 { location, metadata }, // Send as body
                 { headers }
             );
