@@ -12,7 +12,8 @@ import {
     Gavel,
     FileText,
     Lock,
-    Zap
+    Zap,
+    MessageSquare
 } from 'lucide-react';
 
 export default function AboutPage() {
@@ -58,11 +59,11 @@ export default function AboutPage() {
 
                         <GlassCard className="p-8 space-y-4 border-emerald-500/20 bg-emerald-500/5">
                             <div className="w-12 h-12 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                                <ShieldCheck className="h-6 w-6 text-emerald-400" />
+                                <MessageSquare className="h-6 w-6 text-emerald-400" />
                             </div>
-                            <h3 className="text-xl font-bold text-white">Women Safety First</h3>
+                            <h3 className="text-xl font-bold text-white">24/7 AI Chatbot</h3>
                             <p className="text-gray-400">
-                                A dedicated, always-active AI Chatbot provides immediate guidance, legal checks, and resource connections for women' safety, prioritizing privacy and speed.
+                                An always-active intelligent assistant available to everyone. It answers queries, guides you through the grievance process, and provides instant support for any issue.
                             </p>
                         </GlassCard>
                     </div>
