@@ -16,8 +16,12 @@ export default function NewComplaintPage() {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [location, setLocation] = useState('');
+<<<<<<< HEAD
     const [priority, setPriority] = useState('');
     const [images, setImages] = useState<File[]>([]); // New Image State
+=======
+
+>>>>>>> thanishker
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -58,10 +62,7 @@ export default function NewComplaintPage() {
                 const res = await api.post('/ai/analyze', { description: debouncedDescription });
                 setAiAnalysis(res.data);
 
-                // Auto-suggest priority if user hasn't selected one
-                if (!priority && res.data.confidence > 60) {
-                    setPriority(res.data.priority);
-                }
+
             } catch (err) {
                 console.error("AI Analysis failed silently:", err);
             } finally {
@@ -125,7 +126,7 @@ export default function NewComplaintPage() {
                 title,
                 description,
                 location: location || "Unknown Location",
-                priority: priority || undefined  // Send only if manually selected
+
             });
             // Success!
             toast.success("Complaint submitted successfully!");
@@ -270,8 +271,33 @@ export default function NewComplaintPage() {
                                 loading={analyzing} 
                             />
                         </div>
+<<<<<<< HEAD
                     </div>
                 </div>
+=======
+
+
+
+                        <div className="flex gap-4 pt-4">
+                            <Button
+                                type="button"
+                                variant={isListening ? "danger" : "secondary"}
+                                leftIcon={isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                                onClick={toggleVoiceInput}
+                            >
+                                {isListening ? "Stop Recording" : "Voice Input"}
+                            </Button>
+                            <Button type="button" variant="secondary" leftIcon={<MapPin className="h-4 w-4" />}>
+                                Get Location
+                            </Button>
+                        </div>
+
+                        <Button type="submit" className="w-full" size="lg" isLoading={loading} leftIcon={<Send className="h-4 w-4" />}>
+                            Submit Complaint
+                        </Button>
+                    </form>
+                </GlassCard>
+>>>>>>> thanishker
             </div>
         </main>
     );
