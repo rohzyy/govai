@@ -16,12 +16,7 @@ export default function NewComplaintPage() {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [location, setLocation] = useState('');
-<<<<<<< HEAD
-    const [priority, setPriority] = useState('');
     const [images, setImages] = useState<File[]>([]); // New Image State
-=======
-
->>>>>>> thanishker
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -202,7 +197,7 @@ export default function NewComplaintPage() {
                                             {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
                                         </Button>
                                     </div>
-                                    
+
                                     {/* AI Insight Panel (Mobile only - fallback if needed, currently side panel covers desktop) */}
                                 </div>
 
@@ -219,9 +214,9 @@ export default function NewComplaintPage() {
                                                 onChange={(e) => setLocation(e.target.value)}
                                             />
                                         </div>
-                                        <Button 
-                                            type="button" 
-                                            variant="secondary" 
+                                        <Button
+                                            type="button"
+                                            variant="secondary"
                                             className="h-10 w-12 flex items-center justify-center p-0 flex-shrink-0"
                                             title="Get Current Location"
                                         >
@@ -231,9 +226,9 @@ export default function NewComplaintPage() {
                                 </div>
 
                                 {/* Image Upload Area */}
-                                <ImageUploadArea 
-                                    images={images} 
-                                    setImages={setImages} 
+                                <ImageUploadArea
+                                    images={images}
+                                    setImages={setImages}
                                 />
 
                                 <div className="space-y-1.5">
@@ -266,38 +261,13 @@ export default function NewComplaintPage() {
                     {/* Right Column - AI Analysis Panel */}
                     <div className="lg:col-span-2">
                         <div className="lg:sticky lg:top-28">
-                            <AIAnalysisSidePanel 
-                                analysis={aiAnalysis} 
-                                loading={analyzing} 
+                            <AIAnalysisSidePanel
+                                analysis={aiAnalysis}
+                                loading={analyzing}
                             />
                         </div>
-<<<<<<< HEAD
                     </div>
                 </div>
-=======
-
-
-
-                        <div className="flex gap-4 pt-4">
-                            <Button
-                                type="button"
-                                variant={isListening ? "danger" : "secondary"}
-                                leftIcon={isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                                onClick={toggleVoiceInput}
-                            >
-                                {isListening ? "Stop Recording" : "Voice Input"}
-                            </Button>
-                            <Button type="button" variant="secondary" leftIcon={<MapPin className="h-4 w-4" />}>
-                                Get Location
-                            </Button>
-                        </div>
-
-                        <Button type="submit" className="w-full" size="lg" isLoading={loading} leftIcon={<Send className="h-4 w-4" />}>
-                            Submit Complaint
-                        </Button>
-                    </form>
-                </GlassCard>
->>>>>>> thanishker
             </div>
         </main>
     );
