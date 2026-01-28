@@ -10,6 +10,7 @@ import { Mic, MapPin, Send, MicOff } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
 import { useDebounce } from '@/hooks/useDebounce'; // Custom Hook
 import { AIInsightPanel } from '@/components/ai/AIInsightPanel'; // New AI Component
+import { useVoiceInput } from '@/hooks/useVoiceInput';
 
 export default function NewComplaintPage() {
     const [title, setTitle] = useState('');
@@ -24,9 +25,19 @@ export default function NewComplaintPage() {
     const [analyzing, setAnalyzing] = useState(false);
     const debouncedDescription = useDebounce(description, 800);
 
-    // Voice State
-    const [isListening, setIsListening] = useState(false);
-    const recognitionRef = useRef<any>(null);
+    const [selectedVoiceLang, setSelectedVoiceLang] = useState<any>('en-IN');
+    const {
+        recording: isListening,
+        transcribing,
+        transcript,
+        resetTranscript,
+        startRecording,
+        stopRecording,
+        error: voiceError
+    } = useVoiceInput();
+    const [lastProcessedTranscript, setLastProcessedTranscript] = useState('');
+    const browserSupportsSpeech = true; // MediaRecorder is widely supported
+    const isMicrophoneAvailable = true;
 
     const router = useRouter();
     const toast = useToast();
@@ -81,46 +92,40 @@ export default function NewComplaintPage() {
         };
     }, [debouncedDescription]);
 
-    // Voice Input Logic
+    // Voice Input Logic (Improved with Hook)
+    useEffect(() => {
+        console.log("[Voice] Transcript Update:", transcript);
+        if (transcript && transcript !== lastProcessedTranscript) {
+            // Only append the new part of the transcript
+            const newText = transcript.slice(lastProcessedTranscript.length);
+            console.log("[Voice] New text found:", newText);
+            if (newText) {
+                setDescription(prev => prev + (prev && !prev.endsWith(' ') ? ' ' : '') + newText);
+                setLastProcessedTranscript(transcript);
+            }
+        }
+    }, [transcript, lastProcessedTranscript]);
+
+    const lastErrorRef = useRef<string | null>(null);
+
+    useEffect(() => {
+        if (voiceError && voiceError !== lastErrorRef.current) {
+            toast.error(voiceError);
+            lastErrorRef.current = voiceError;
+        } else if (!voiceError) {
+            lastErrorRef.current = null;
+        }
+    }, [voiceError, toast]);
+
     const toggleVoiceInput = () => {
         if (isListening) {
-            recognitionRef.current?.stop();
-            setIsListening(false);
-            return;
-        }
-
-        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-            const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-            recognitionRef.current = new SpeechRecognition();
-            recognitionRef.current.continuous = true;
-            recognitionRef.current.interimResults = true;
-            recognitionRef.current.lang = 'en-IN'; // Default to Indian English
-
-            recognitionRef.current.onstart = () => setIsListening(true);
-
-            recognitionRef.current.onresult = (event: any) => {
-                let finalTranscript = '';
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    if (event.results[i].isFinal) {
-                        finalTranscript += event.results[i][0].transcript;
-                    }
-                }
-                if (finalTranscript) {
-                    setDescription(prev => prev + (prev ? ' ' : '') + finalTranscript);
-                }
-            };
-
-            recognitionRef.current.onerror = (event: any) => {
-                console.error("Speech error", event);
-                setIsListening(false);
-                toast.error("Voice input failed. Please try typing.");
-            };
-
-            recognitionRef.current.onend = () => setIsListening(false);
-
-            recognitionRef.current.start();
+            stopRecording(selectedVoiceLang);
+            setLastProcessedTranscript('');
         } else {
-            toast.error("Voice input is not supported in this browser.");
+            resetTranscript();
+            setLastProcessedTranscript('');
+            startRecording();
+            toast.info("Recording... Speak now");
         }
     };
 
@@ -190,8 +195,24 @@ export default function NewComplaintPage() {
                                     required
                                 />
                                 {isListening && (
-                                    <div className="absolute bottom-3 right-3 animate-pulse">
-                                        <div className="h-3 w-3 bg-red-500 rounded-full"></div>
+                                    <div className="absolute inset-x-0 bottom-0 p-3 bg-blue-500/10 backdrop-blur-sm rounded-b-xl border-t border-white/5">
+                                        {!isMicrophoneAvailable ? (
+                                            <div className="text-xs text-red-400 font-medium whitespace-nowrap overflow-hidden text-ellipsis">
+                                                ❌ Microphone not detected or access denied
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col gap-1 overflow-hidden">
+                                                <div className="flex items-center gap-2 text-xs text-blue-300 animate-pulse">
+                                                    <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
+                                                    <span className="font-medium">
+                                                        {transcribing ? "🔄 Transcribing..." : "Voice Status: Recording..."}
+                                                    </span>
+                                                </div>
+                                                <div className="text-xs text-gray-400 italic truncate">
+                                                    {transcribing ? "Analyzing audio..." : (transcript || "Waiting for audio...")}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -216,7 +237,7 @@ export default function NewComplaintPage() {
                                 Priority (Optional)
                             </label>
                             <select
-                                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all"
+                                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all font-medium"
                                 value={priority}
                                 onChange={(e) => setPriority(e.target.value)}
                             >
@@ -226,8 +247,25 @@ export default function NewComplaintPage() {
                                 <option value="High" className="bg-gray-900">🟠 High - Urgent matters</option>
                                 <option value="Critical" className="bg-gray-900">🔴 Critical - Emergency</option>
                             </select>
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <label className="block text-sm font-medium text-gray-300 ml-1">
+                                Voice Language
+                            </label>
+                            <select
+                                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all font-medium"
+                                value={selectedVoiceLang}
+                                onChange={(e) => setSelectedVoiceLang(e.target.value)}
+                                disabled={isListening}
+                            >
+                                <option value="en-IN" className="bg-gray-900">English (India)</option>
+                                <option value="hi-IN" className="bg-gray-900">Hindi (हिंदी)</option>
+                                <option value="te-IN" className="bg-gray-900">Telugu (తెలుగు)</option>
+                                <option value="ta-IN" className="bg-gray-900">Tamil (தமிழ்)</option>
+                            </select>
                             <p className="text-xs text-gray-500 ml-1">
-                                Leave as auto-detect for AI to analyze urgency from your description
+                                Select your language before starting voice input
                             </p>
                         </div>
 

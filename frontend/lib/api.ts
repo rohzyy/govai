@@ -1,15 +1,15 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000', // Direct Backend Access (Use IP to avoid localhost IPv6 issues)
-    withCredentials: true, // IMPORTANT: Sends Cookies
+    baseURL: '/api', // Use Next.js API Gateway (app/api/*)
+    withCredentials: true,
     headers: {
         'Content-Type': 'application/json',
     },
-    timeout: 10000, // 10 Seconds Timeout
+    timeout: 60000,
 });
 
-console.log("[DEBUG] API Base URL:", process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000');
+console.log("[DEBUG] API Base URL: /api");
 
 
 // Helper to read CSRF Cookie
@@ -78,7 +78,7 @@ api.interceptors.response.use(
 
             try {
                 // Attempt Refresh
-                const refreshResponse = await axios.post('http://localhost:8000/auth/refresh', {}, { withCredentials: true });
+                const refreshResponse = await axios.post('http://localhost:5000/auth/refresh', {}, { withCredentials: true });
 
                 // CRITICAL: Update LocalStorage with new token immediately
                 if (refreshResponse.data?.access_token) {
@@ -94,7 +94,7 @@ api.interceptors.response.use(
             } catch (refreshError) {
                 // Refresh failed (Revoked or Expired) -> Logout
                 if (typeof window !== 'undefined') {
-                    await axios.post('http://localhost:8000/auth/logout', {}, { withCredentials: true });
+                    await axios.post('http://localhost:5000/auth/logout', {}, { withCredentials: true });
                     window.location.href = '/login';
                 }
                 return Promise.reject(refreshError);

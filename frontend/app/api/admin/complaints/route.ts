@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
         console.log(`[Proxy] Fetching Admin Complaints: /admin/complaints${queryString}`);
 
         // FORCE ABSOLUTE URL
-        const response = await backendAPI.get(`http://127.0.0.1:8000/admin/complaints${queryString}`, {
+        const response = await backendAPI.get(`/admin/complaints${queryString}`, {
             headers,
             validateStatus: (status) => status < 500
         });

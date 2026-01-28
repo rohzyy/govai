@@ -5,7 +5,8 @@ import random
 INDIA_GOVT_DEPARTMENTS = {
     "Roads & Public Works": {
         "keywords": ["pothole", "road", "street", "footpath", "pavement", "cave-in", "damaged road", 
-                     "broken road", "road damage", "highway", "asphalt", "tar road", "divider"],
+                     "broken road", "road damage", "highway", "asphalt", "tar road", "divider",
+                     "building", "structural", "wall", "ceiling", "floor", "crack", "collapse"],
         "full_name": "Public Works Department (PWD)",
         "officer": "Junior Engineer (JE)"
     },
@@ -67,13 +68,15 @@ INDIA_GOVT_DEPARTMENTS = {
 # Priority Classification Keywords
 PRIORITY_KEYWORDS = {
     "Critical": ["life-threatening", "fatal", "death", "fire", "explosion", "crisis", "electrocution", 
-                 "assault", "attack", "violence", "rape", "murder", "crime", "shock", "active current"],
+                 "assault", "attack", "violence", "rape", "murder", "crime", "shock", "active current", "bomb"],
     "High": ["urgent", "emergency", "danger", "accident", "immediate", "critical", "collapse",
              "leak", "open wire", "burst", "flooding", "hanging wire", 
              "exposed", "biohazard", "toxic", "medical waste", 
-             "harassment", "abuse", "unsafe", "threat", "stalking", "eve teasing", "security", "cave-in"],
+             "harassment", "abuse", "unsafe", "threat", "stalking", "eve teasing", "security", "cave-in",
+             "broken building", "falling", "crack", "structural", "dangerous building"],
     "Medium": ["damaged", "poor", "irregular", "not working", "malfunctioning",
-               "blocked", "clogged", "overflowing", "dirty", "garbage", "trash", "waste", "smell", "stench", "not functioning"],
+               "blocked", "clogged", "overflowing", "dirty", "garbage", "trash", "waste", "smell", "stench", "not functioning",
+               "broke down", "not strong", "weak", "cracks", "pothole", "street light out"],
 }
 
 # Generic Intensifiers (Do not assign Priority directly, but boost relevant categories)
@@ -143,15 +146,13 @@ def classify_complaint_with_llm(text: str, location: str = "Unknown") -> dict:
     try:
         import google.generativeai as genai
         import json
-        from .config import settings
-        
-        if not settings.GEMINI_API_KEY or "AIzaSyCX" in settings.GEMINI_API_KEY:
-            print("[AI] Skipping LLM: Missing or Placeholder API Key")
+        if not settings.STT_API_KEY or (settings.STT_API_KEY.startswith("AIzaSyCX") and len(settings.STT_API_KEY) < 20):
+            print("[TERMINAL LOG] STT_API_KEY is null or contains placeholder text. AI features will be limited.")
             return None
             
-        print(f"[AI] Calling Gemini API with key ending in ...{settings.GEMINI_API_KEY[-4:]}")
-        genai.configure(api_key=settings.GEMINI_API_KEY)
-        model = genai.GenerativeModel('gemini-pro')
+        print(f"[AI] Calling Gemini API with key ending in ...{settings.STT_API_KEY[-4:]}")
+        genai.configure(api_key=settings.STT_API_KEY)
+        model = genai.GenerativeModel('gemini-flash-latest')
         
         prompt = f"""
         Analyze this citizen grievance for a government database.
@@ -175,7 +176,10 @@ def classify_complaint_with_llm(text: str, location: str = "Unknown") -> dict:
            - "Foul Smell" is MEDIUM (Quality of Life), not High/Critical.
            - "Live Wire/Fire/Public Safety Threats" are ALWAYS CRITICAL.
            - "Harassment/Stalking/Assault" are HIGH or CRITICAL.
+           - "Structural Issues" (Weak buildings, cracks, falling debris) are ALWAYS at least MEDIUM. If there is immediate risk of collapse, they are HIGH.
+           - HANDLE IMPERFECT ENGLISH: Users may use "broke down", "not strong", "might fall", "dangerous" in simple English or "Hinglish". Focus on the INTENT and the underlying hazard.
 
+           Example: "building broke down" -> Medium or High (Structural hazard).
            Example: "Garbage smelling like death" -> Medium (Health risk, but not immediate death).
            Example: "Live wire sending sparks" -> Critical (Immediate death risk).
            
@@ -209,6 +213,68 @@ def classify_complaint_with_llm(text: str, location: str = "Unknown") -> dict:
     except Exception as e:
         print(f"[AI] LLM Classification Failed: {e}")
         return None
+
+def transcribe_audio(audio_bytes: bytes, lang: str = "en-IN") -> str:
+    """
+    Transcribes audio using Gemini 1.5 Flash.
+    Supports multilingual input based on the lang parameter.
+    """
+    try:
+        import google.generativeai as genai
+        from .config import settings
+        import tempfile
+        import os
+        
+        if not settings.STT_API_KEY:
+            print("[TERMINAL LOG] ERROR: STT_API_KEY is NULL. Transcription cannot proceed.")
+            return "Transcription failed: Missing STT_API_KEY"
+
+        if settings.STT_API_KEY.startswith("AIzaSyCX") and len(settings.STT_API_KEY) < 25:
+             print("[TERMINAL LOG] WARNING: Detected PLACEHOLDER STT_API_KEY. Transcription likely to fail.")
+
+        genai.configure(api_key=settings.STT_API_KEY)
+        model = genai.GenerativeModel('gemini-flash-latest')
+
+        # Save audio to temporary file for Gemini consumption
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as tmp:
+            tmp.write(audio_bytes)
+            tmp_path = tmp.name
+
+        try:
+            import time
+            start_time = time.time()
+            
+            # Upload file to Gemini
+            print(f"[AI] Uploading audio to Gemini... ({len(audio_bytes)} bytes)")
+            audio_file = genai.upload_file(path=tmp_path, mime_type="audio/webm")
+            upload_done = time.time()
+            print(f"[AI] Upload complete in {upload_done - start_time:.2f}s")
+            
+            prompt = f"Transcribe this audio accurately. The language is likely {lang} but may be mixed. Return ONLY the transcribed text."
+            print(f"[AI] Generating transcription for {lang}...")
+            
+            # Pass timeout to generate_content
+            response = model.generate_content(
+                [prompt, audio_file],
+                request_options={"timeout": 30} # 30s max for AI response
+            )
+            
+            gen_done = time.time()
+            print(f"[AI] Generation complete in {gen_done - upload_done:.2f}s. Total: {gen_done - start_time:.2f}s")
+            
+            return response.text.strip()
+        except Exception as api_err:
+            error_str = str(api_err)
+            if "API_KEY_INVALID" in error_str or "400" in error_str:
+                return "TRANSCRIPTION_ERROR: Invalid or restricted API Key. Please check backend config."
+            raise api_err
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+                
+    except Exception as e:
+        print(f"[AI] Transcription Failed: {e}")
+        return f"Transcription error: Technical issue or invalid API configuration."
 
 
 def analyze_complaint(text: str):
@@ -360,11 +426,11 @@ def force_llm_summary(complaint) -> str:
         import google.generativeai as genai
         from .config import settings
         
-        if not settings.GEMINI_API_KEY:
+        if not settings.STT_API_KEY:
             raise ValueError("No API Key")
             
-        genai.configure(api_key=settings.GEMINI_API_KEY)
-        model = genai.GenerativeModel('gemini-pro')
+        genai.configure(api_key=settings.STT_API_KEY)
+        model = genai.GenerativeModel('gemini-flash-latest')
         
         prompt = f"""
         You are assisting a government officer.

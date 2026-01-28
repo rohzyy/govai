@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
-from .routes import auth_routes, complaint_routes, admin_routes, officer_routes, women_safety, debug_routes, public_routes
+from .routes import auth_routes, complaint_routes, admin_routes, officer_routes, women_safety, debug_routes, public_routes, ai_routes
 from .config import settings
 
 # Create Tables
@@ -54,7 +54,6 @@ app.include_router(complaint_routes.router)
 app.include_router(admin_routes.router)
 app.include_router(officer_routes.router)
 app.include_router(women_safety.router)
-from .routes import ai_routes
 app.include_router(ai_routes.router)
 app.include_router(debug_routes.router)
 app.include_router(public_routes.router)
@@ -67,12 +66,12 @@ from .utils.startup_check import validate_routes
 async def startup_event():
     # validate_routes(app)
     from .config import settings
-    key = settings.GEMINI_API_KEY
-    print(f"[STARTUP] Loaded API Key: ...{key[-4:] if key else 'None'}")
+    key = settings.STT_API_KEY
+    print(f"[STARTUP] Loaded STT_API_KEY: ...{key[-4:] if key else 'None'}")
     if not key or "AIzaSyCX" in key:
-        print("[STARTUP] Placeholder key detection: ACTIVE (AI will be skipped)")
+        print("[STARTUP] STT_API_KEY status: MISSING/PLACEHOLDER (Transcription will fail)")
     else:
-        print("[STARTUP] Placeholder key detection: INACTIVE (AI will run)")
+        print("[STARTUP] STT_API_KEY status: CONFIGURED (Ready for AI features)")
     pass
 
 

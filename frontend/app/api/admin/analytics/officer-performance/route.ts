@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
     try {
-        const backendUrl = process.env.BACKEND_API_URL || 'http://127.0.0.1:8000';
+        const backendUrl = process.env.BACKEND_API_URL || 'http://127.0.0.1:5000';
         const res = await fetch(`${backendUrl}/admin/analytics/officer-performance`, {
             headers: {
                 'Content-Type': 'application/json',

@@ -55,7 +55,7 @@ export default function AssignComplaintModal({
             const headers: HeadersInit = {};
             headers['Authorization'] = `Bearer ${token}`;
 
-            const response = await fetch('http://localhost:8000/admin/officers?status=Active', {
+            const response = await fetch('/api/admin/officers?status=Active', {
                 headers,
                 credentials: 'include' // CRITICAL: Send HttpOnly Cookies
             });
@@ -90,7 +90,7 @@ export default function AssignComplaintModal({
                 headers['Authorization'] = `Bearer ${token}`;
             }
 
-            const response = await fetch(`http://localhost:8000/admin/complaints/${complaintId}/assign`, {
+            const response = await fetch(`/api/admin/complaints/${complaintId}/assign`, {
                 method: 'POST',
                 headers,
                 credentials: 'include', // CRITICAL: Send HttpOnly Cookies
