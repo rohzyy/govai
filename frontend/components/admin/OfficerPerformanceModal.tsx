@@ -41,7 +41,7 @@ export default function OfficerPerformanceModal({
         setLoading(true);
         try {
             const token = localStorage.getItem('access_token');
-            const response = await fetch(`http://localhost:8000/admin/officers/${officerId}/performance`, {
+            const response = await fetch(`/api/admin/officers/${officerId}/performance`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }

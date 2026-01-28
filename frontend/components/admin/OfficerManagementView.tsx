@@ -126,7 +126,7 @@ export default function OfficerManagementView() {
 
             // BYPASS PROXY FOR DEBUGGING
             // const url = '/api/admin/officers';
-            const url = 'http://localhost:8000/admin/officers';
+            const url = '/api/admin/officers';
 
             console.log('[DEBUG] Token:', token);
             console.log('[DEBUG] URL:', url);

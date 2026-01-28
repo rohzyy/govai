@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
         try {
             // FORCE ABSOLUTE URL to prevent baseURL confusion
             // Also explicitly handle 404 as a failure, just in case axios doesn't throw
-            const response = await backendAPI.get('http://127.0.0.1:8000/api/complaints/active', {
+            const response = await backendAPI.get('/api/complaints/active', {
                 headers,
                 validateStatus: (status) => status < 500 // Allow 404 to be handled manually
             });

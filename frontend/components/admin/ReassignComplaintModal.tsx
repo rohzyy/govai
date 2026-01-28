@@ -46,7 +46,7 @@ export default function ReassignComplaintModal({
     const fetchOfficers = async () => {
         try {
             const token = localStorage.getItem('access_token');
-            const response = await fetch('http://localhost:8000/admin/officers?status=Active', {
+            const response = await fetch('/api/admin/officers?status=Active', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -78,7 +78,7 @@ export default function ReassignComplaintModal({
         setLoading(true);
         try {
             const token = localStorage.getItem('access_token');
-            const response = await fetch(`http://localhost:8000/admin/complaints/${complaintId}/reassign`, {
+            const response = await fetch(`/api/admin/complaints/${complaintId}/reassign`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

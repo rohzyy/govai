@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
         const authHeader = request.headers.get('authorization');
         const cookieHeader = request.headers.get('cookie');
 
-        const backendUrl = process.env.BACKEND_API_URL || 'http://127.0.0.1:8000';
+        const backendUrl = process.env.BACKEND_API_URL || 'http://127.0.0.1:5000';
 
         console.log('[API Proxy] GET /admin/officers');
 
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
         if (authHeader) console.log('[API Proxy] Auth Header Sample:', authHeader.substring(0, 20) + '...');
         console.log('[API Proxy] Cookie Header Present:', !!cookieHeader);
 
-        const backendUrl = process.env.BACKEND_API_URL || 'http://127.0.0.1:8000';
+        const backendUrl = process.env.BACKEND_API_URL || 'http://127.0.0.1:5000';
 
         const response = await fetch(`${backendUrl}/admin/officers`, {
             method: 'POST',
