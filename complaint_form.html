@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GrievanceAI - New Complaint</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --card-bg: rgba(22, 27, 34, 0.8);
+            --primary-accent: #3fb1ff;
+            --secondary-accent: #2ea043;
+            --danger-accent: #f85149;
+            --text-main: #c9d1d9;
+            --text-muted: #8b949e;
+            --border-color: rgba(240, 246, 252, 0.1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            padding: 24px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        h1 {
+            margin: 0 0 8px 0;
+            font-size: 24px;
+            color: #fff;
+        }
+
+        p.subtitle {
+            margin: 0 0 32px 0;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-left: 4px;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: #fff;
+            font-size: 14px;
+            box-sizing: border-box;
+            transition: all 0.2s;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-accent);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 0 3px rgba(63, 177, 255, 0.1);
+        }
+
+        textarea {
+            height: 120px;
+            resize: none;
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 12px;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3fb1ff, #2ea043);
+            color: #fff;
+            grid-column: span 2;
+            margin-top: 12px;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .btn-danger {
+            background: var(--danger-accent);
+            color: #fff;
+        }
+
+        .lang-selector {
+            margin-bottom: 12px;
+        }
+
+        .status-badge {
+            display: none;
+            font-size: 12px;
+            margin-top: 8px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            text-align: center;
+        }
+
+        .status-badge.active {
+            display: block;
+            background: rgba(248, 81, 73, 0.1);
+            color: var(--danger-accent);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #238636;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <h1>New Complaint</h1>
+        <p class="subtitle">Quickly report an issue to your local authorities.</p>
+
+        <form id="complaintForm">
+            <div class="form-group">
+                <label for="title">Title</label>
+                <input type="text" id="title" placeholder="e.g., Pothole on Market St" required>
+            </div>
+
+            <div class="form-group">
+                <label for="description">Description</label>
+                <textarea id="description" placeholder="Provide details about the issue..." required></textarea>
+                <div id="voiceStatus" class="status-badge">🔴 Recording... Speak now</div>
+            </div>
+
+            <div class="form-group">
+                <label for="location">Location</label>
+                <input type="text" id="location" placeholder="Address or coordinates">
+            </div>
+
+            <div class="form-group">
+                <label for="priority">Priority</label>
+                <select id="priority">
+                    <option value="auto">🤖 Auto-detect (AI will classify)</option>
+                    <option value="low">🟢 Low</option>
+                    <option value="medium">🟡 Medium</option>
+                    <option value="high">🟠 High</option>
+                    <option value="critical">🔴 Critical</option>
+                </select>
+            </div>
+
+            <div class="lang-selector">
+                <label for="langSelect">Voice Language</label>
+                <select id="langSelect">
+                    <option value="en-IN">English (India)</option>
+                    <option value="hi-IN">Hindi (हिंदी)</option>
+                    <option value="te-IN">Telugu (తెలుగు)</option>
+                    <option value="ta-IN">Tamil (தமிழ்)</option>
+                </select>
+            </div>
+
+            <div class="button-group">
+                <button type="button" id="voiceBtn" class="btn-secondary">
+                    🎤 Voice Input
+                </button>
+                <button type="button" id="locationBtn" class="btn-secondary">
+                    📍 Get Location
+                </button>
+                <button type="submit" class="btn-primary">
+                    Submit Complaint
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="toast" class="toast">Complaint logged to console!</div>
+
+<script>
+    /**
+     * 🎤 VOICE RECOGNITION LOGIC
+     * Uses the Web Speech API to capture and convert voice to text.
+     */
+    const voiceBtn = document.getElementById('voiceBtn');
+    const langSelect = document.getElementById('langSelect');
+    const description = document.getElementById('description');
+    const voiceStatus = document.getElementById('voiceStatus');
+
+    let recognition;
+    let isRecording = false;
+
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+
+        recognition.onstart = () => {
+            isRecording = true;
+            voiceBtn.classList.add('btn-danger');
+            voiceBtn.innerHTML = '🛑 Stop Recording';
+            voiceStatus.classList.add('active');
+        };
+
+        recognition.onresult = (event) => {
+            let finalTranscript = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                    finalTranscript += event.results[i][0].transcript;
+                }
+            }
+            if (finalTranscript) {
+                description.value += (description.value ? ' ' : '') + finalTranscript;
+            }
+        };
+
+        recognition.onerror = (event) => {
+            console.error('Speech Recognition Error:', event.error);
+            stopRecording();
+            alert('Voice recognition error: ' + event.error);
+        };
+
+        recognition.onend = () => {
+            stopRecording();
+        };
+
+    } else {
+        voiceBtn.disabled = true;
+        voiceBtn.title = "Browser not supported";
+        console.warn('Speech Recognition not supported in this browser.');
+    }
+
+    function stopRecording() {
+        isRecording = false;
+        voiceBtn.classList.remove('btn-danger');
+        voiceBtn.innerHTML = '🎤 Voice Input';
+        voiceStatus.classList.remove('active');
+        if (recognition) recognition.stop();
+    }
+
+    voiceBtn.addEventListener('click', () => {
+        if (isRecording) {
+            stopRecording();
+        } else {
+            recognition.lang = langSelect.value;
+            recognition.start();
+        }
+    });
+
+    /**
+     * 📍 GEOLOCATION LOGIC
+     * Fetches coordinates and provides a readable address using Nominatim (Free API).
+     */
+    const locationBtn = document.getElementById('locationBtn');
+    const locationInput = document.getElementById('location');
+
+    locationBtn.addEventListener('click', () => {
+        if (!navigator.geolocation) {
+            alert('Geolocation is not supported by your browser');
+            return;
+        }
+
+        locationBtn.innerHTML = '⏳ Locating...';
+        locationBtn.disabled = true;
+
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const { latitude, longitude } = position.coords;
+                locationInput.value = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+
+                try {
+                    // Reverse Geocoding using free OpenStreetMap API
+                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+                    const data = await res.json();
+                    if (data.display_name) {
+                        locationInput.value = data.display_name;
+                    }
+                } catch (e) {
+                    console.warn("Reverse geocoding failed, keeping coordinates.");
+                } finally {
+                    locationBtn.innerHTML = '📍 Get Location';
+                    locationBtn.disabled = false;
+                }
+            },
+            (err) => {
+                console.error("Geolocation Error:", err);
+                locationBtn.innerHTML = '📍 Get Location';
+                locationBtn.disabled = false;
+                alert("Location access denied. Please enter manually.");
+            }
+        );
+    });
+
+    /**
+     * 🚀 FORM SUBMISSION
+     */
+    const form = document.getElementById('complaintForm');
+    const toast = document.getElementById('toast');
+
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        const complaint = {
+            title: document.getElementById('title').value,
+            description: document.getElementById('description').value,
+            location: document.getElementById('location').value,
+            priority: document.getElementById('priority').value,
+            timestamp: new Date().toISOString()
+        };
+
+        console.log("=== COMPLAINT SUBMITTED ===");
+        console.log(JSON.stringify(complaint, null, 2));
+
+        // Show Toast
+        toast.style.display = 'block';
+        setTimeout(() => toast.style.display = 'none', 3000);
+
+        // Optional: Reset form
+        // form.reset();
+    });
+</script>
+
+</body>
+</html>

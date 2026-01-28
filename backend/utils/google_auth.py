@@ -36,7 +36,7 @@ def verify_google_token(token: str, db: Session):
             token,
             requests.Request(),
             settings.GOOGLE_CLIENT_ID,
-            clock_skew_in_seconds=10 # Step 5: Clock Skew Tolerance
+            clock_skew_in_seconds=60 # Increased to 60s to handle system time differences
         )
         
         # print(f"DEBUG AUTH: Token Verified. Audience: {idinfo.get('aud')}")
@@ -58,5 +58,6 @@ def verify_google_token(token: str, db: Session):
             
         return user
         
-    except ValueError:
-        raise ValueError("Invalid Google Token")
+    except ValueError as e:
+        print(f"DEBUG AUTH ERROR: Token Verification Failed. Details: {str(e)}")
+        raise ValueError(f"Invalid Google Token: {str(e)}")

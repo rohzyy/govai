@@ -95,6 +95,7 @@ export default function WomenSafetyChatbot() {
 
     // State for Panic Feedback
     const [panicStatus, setPanicStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
+    const [confirmPanic, setConfirmPanic] = useState(false);
 
     const handlePanic = async () => {
         setIsEmergency(true);
@@ -128,7 +129,7 @@ export default function WomenSafetyChatbot() {
                     </motion.div>
                 )}
                 <button
-                    onClick={handlePanic}
+                    onClick={() => setConfirmPanic(!confirmPanic)}
                     className={clsx(
                         "group relative flex items-center justify-center w-16 h-16 rounded-full shadow-lg transition-all active:scale-95",
                         panicStatus === 'sending' ? "bg-red-800" : "bg-red-600 hover:bg-red-700 animate-pulse-slow"
@@ -141,6 +142,45 @@ export default function WomenSafetyChatbot() {
                         <AlertTriangle className="w-8 h-8 text-white relative z-10" />
                     )}
                 </button>
+
+                {/* CONFIRMATION POPUP */}
+                <AnimatePresence>
+                    {confirmPanic && panicStatus !== 'sent' && panicStatus !== 'sending' && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.8, y: 10 }}
+                            className="absolute bottom-20 right-0 bg-white p-4 rounded-xl shadow-2xl border border-red-100 w-64 pointer-events-auto"
+                        >
+                            <div className="flex items-start gap-3 mb-3">
+                                <div className="p-2 bg-red-100 rounded-lg">
+                                    <AlertTriangle className="w-5 h-5 text-red-600" />
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-gray-900">Are you sure?</h4>
+                                    <p className="text-xs text-gray-500 mt-1">This will send an immediate SOS signal.</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setConfirmPanic(false)}
+                                    className="flex-1 py-2 text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        handlePanic();
+                                        setConfirmPanic(false);
+                                    }}
+                                    className="flex-1 py-2 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-sm"
+                                >
+                                    Yes, SOS
+                                </button>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
 
             {/* CHAT WINDOW */}

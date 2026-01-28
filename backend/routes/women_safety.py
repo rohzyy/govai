@@ -8,7 +8,7 @@ import google.generativeai as genai
 import logging
 
 # Configure Gemini
-genai.configure(api_key=config.settings.GEMINI_API_KEY)
+genai.configure(api_key=config.settings.STT_API_KEY)
 model = genai.GenerativeModel("gemini-pro")
 
 router = APIRouter(prefix="/women-safety", tags=["Women Safety"])
