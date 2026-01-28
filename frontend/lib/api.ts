@@ -78,7 +78,7 @@ api.interceptors.response.use(
 
             try {
                 // Attempt Refresh
-                const refreshResponse = await axios.post('http://localhost:5000/auth/refresh', {}, { withCredentials: true });
+                const refreshResponse = await axios.post('/api/auth/refresh', {}, { withCredentials: true });
 
                 // CRITICAL: Update LocalStorage with new token immediately
                 if (refreshResponse.data?.access_token) {
@@ -94,7 +94,7 @@ api.interceptors.response.use(
             } catch (refreshError) {
                 // Refresh failed (Revoked or Expired) -> Logout
                 if (typeof window !== 'undefined') {
-                    await axios.post('http://localhost:5000/auth/logout', {}, { withCredentials: true });
+                    await axios.post('/api/auth/logout', {}, { withCredentials: true });
                     window.location.href = '/login';
                 }
                 return Promise.reject(refreshError);

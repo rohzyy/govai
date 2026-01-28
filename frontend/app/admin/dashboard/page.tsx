@@ -18,12 +18,74 @@ import {
     CheckCircle,
     Clock,
     AlertTriangle,
-    UserPlus
+    UserPlus,
+    LucideIcon
 } from 'lucide-react';
 import GrievanceManagementView from '@/components/admin/GrievanceManagementView';
 import OfficerManagementView from '@/components/admin/OfficerManagementView';
 import AnalyticsView from '@/components/admin/AnalyticsView';
 import AuditLogsView from '@/components/admin/AuditLogsView';
+
+// Type definitions for components
+interface StatCardProps {
+    title: string;
+    value: number | string | undefined;
+    icon: LucideIcon;
+    bgColor: string;
+    textColor: string;
+    subtitle?: string;
+}
+
+interface SidebarItemProps {
+    icon: LucideIcon;
+    label: string;
+    active: boolean;
+    onClick: () => void;
+}
+
+// StatCard component - defined outside to avoid re-creation during render
+const StatCard = ({ title, value, icon: Icon, bgColor, textColor, subtitle }: StatCardProps) => (
+    <GlassCard className={`p-6 ${bgColor} border-l-4`}>
+        <div className="flex items-center justify-between mb-2">
+            <div className={`p-2 rounded-lg bg-white/10`}>
+                <Icon className={`h-6 w-6 ${textColor}`} />
+            </div>
+            <span className={`text-4xl font-bold ${textColor}`}>{value || 0}</span>
+        </div>
+        <h3 className="text-sm font-medium text-gray-300 mb-1">{title}</h3>
+        {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
+    </GlassCard>
+);
+
+// SidebarItem component - defined outside to avoid re-creation during render
+const SidebarItem = ({ icon: Icon, label, active, onClick }: SidebarItemProps) => (
+    <button
+        onClick={onClick}
+        className={`relative w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group ${active ? 'text-blue-100' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+            }`}
+        aria-current={active ? 'page' : undefined}
+    >
+        {active && (
+            <motion.div
+                className="absolute inset-0 bg-blue-600/20 border border-blue-500/30 rounded-xl"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{
+                    duration: 0.15,
+                    ease: [0.2, 0.8, 0.2, 1]
+                }}
+                style={{
+                    boxShadow: "inset 0 0 12px rgba(59, 130, 246, 0.15)"
+                }}
+            />
+        )}
+        <div className="relative z-10 flex items-center gap-3">
+            <Icon size={18} className={active ? 'text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.5)]' : 'text-gray-500 group-hover:text-gray-300 transition-colors duration-200'} />
+            <span className="font-medium text-sm tracking-wide">{label}</span>
+        </div>
+    </button>
+);
+
 
 export default function AdminDashboard() {
     const [stats, setStats] = useState<any>(null);
@@ -102,47 +164,6 @@ export default function AdminDashboard() {
         localStorage.clear();
         router.push('/admin/login');
     }
-
-    const StatCard = ({ title, value, icon: Icon, bgColor, textColor, subtitle }: any) => (
-        <GlassCard className={`p-6 ${bgColor} border-l-4`}>
-            <div className="flex items-center justify-between mb-2">
-                <div className={`p-2 rounded-lg bg-white/10`}>
-                    <Icon className={`h-6 w-6 ${textColor}`} />
-                </div>
-                <span className={`text-4xl font-bold ${textColor}`}>{value || 0}</span>
-            </div>
-            <h3 className="text-sm font-medium text-gray-300 mb-1">{title}</h3>
-            {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
-        </GlassCard>
-    );
-
-    const SidebarItem = ({ icon: Icon, label, active, onClick }: any) => (
-        <button
-            onClick={onClick}
-            className={`relative w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group ${active ? 'text-blue-100' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
-                }`}
-            aria-current={active ? 'page' : undefined}
-        >
-            {active && (
-                <motion.div
-                    className="absolute inset-0 bg-blue-600/20 border border-blue-500/30 rounded-xl"
-                    initial={{ opacity: 0, scale: 0.98 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{
-                        duration: 0.15,
-                        ease: [0.2, 0.8, 0.2, 1]
-                    }}
-                    style={{
-                        boxShadow: "inset 0 0 12px rgba(59, 130, 246, 0.15)"
-                    }}
-                />
-            )}
-            <div className="relative z-10 flex items-center gap-3">
-                <Icon size={18} className={active ? 'text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.5)]' : 'text-gray-500 group-hover:text-gray-300 transition-colors duration-200'} />
-                <span className="font-medium text-sm tracking-wide">{label}</span>
-            </div>
-        </button>
-    );
 
     return (
         <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex">

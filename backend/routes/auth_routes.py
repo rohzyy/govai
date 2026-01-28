@@ -96,6 +96,7 @@ def google_login(
     return {
         "access_token": refresh_token_str, # Using refresh logic var name but it's fine, or distinct
         "user": {
+            "id": user.id,
             "name": user.full_name,
             "email": user.email,
             "photo": user.photo_url,
