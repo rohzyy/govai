@@ -8,8 +8,9 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import api from '@/lib/api';
 import { Mic, MapPin, Send, MicOff } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
-import { useDebounce } from '@/hooks/useDebounce'; // Custom Hook
-import { AIInsightPanel } from '@/components/ai/AIInsightPanel'; // New AI Component
+import { useDebounce } from '@/hooks/useDebounce';
+import { AIAnalysisSidePanel } from '@/components/ai/AIAnalysisSidePanel';
+import { ImageUploadArea } from '@/components/ImageUploadArea';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
 
 export default function NewComplaintPage() {
@@ -17,6 +18,7 @@ export default function NewComplaintPage() {
     const [description, setDescription] = useState('');
     const [location, setLocation] = useState('');
     const [priority, setPriority] = useState('');
+    const [images, setImages] = useState<File[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -25,7 +27,7 @@ export default function NewComplaintPage() {
     const [analyzing, setAnalyzing] = useState(false);
     const debouncedDescription = useDebounce(description, 800);
 
-    const [selectedVoiceLang, setSelectedVoiceLang] = useState<any>('en-IN');
+    const [selectedVoiceLang, setSelectedVoiceLang] = useState<string>('en-IN');
     const {
         recording: isListening,
         transcribing,
@@ -36,14 +38,12 @@ export default function NewComplaintPage() {
         error: voiceError
     } = useVoiceInput();
     const [lastProcessedTranscript, setLastProcessedTranscript] = useState('');
-    const browserSupportsSpeech = true; // MediaRecorder is widely supported
-    const isMicrophoneAvailable = true;
 
     const router = useRouter();
     const toast = useToast();
 
     useEffect(() => {
-        // FORCE AUTH CHECK (Improved)
+        // FORCE AUTH CHECK
         const token = localStorage.getItem('access_token');
         const cookieToken = document.cookie.match(new RegExp('(^| )access_token=([^;]+)'));
 
@@ -65,10 +65,7 @@ export default function NewComplaintPage() {
 
             if (isActive) setAnalyzing(true);
             try {
-                // Non-blocking AI Call
-                // Cancel if component unmounted or dependency changed
                 if (!isActive) return;
-
                 const res = await api.post('/helper/scan-text', { description: debouncedDescription });
 
                 if (isActive) {
@@ -90,15 +87,12 @@ export default function NewComplaintPage() {
         return () => {
             isActive = false;
         };
-    }, [debouncedDescription]);
+    }, [debouncedDescription, priority]);
 
-    // Voice Input Logic (Improved with Hook)
+    // Voice Input Logic
     useEffect(() => {
-        console.log("[Voice] Transcript Update:", transcript);
         if (transcript && transcript !== lastProcessedTranscript) {
-            // Only append the new part of the transcript
             const newText = transcript.slice(lastProcessedTranscript.length);
-            console.log("[Voice] New text found:", newText);
             if (newText) {
                 setDescription(prev => prev + (prev && !prev.endsWith(' ') ? ' ' : '') + newText);
                 setLastProcessedTranscript(transcript);
@@ -139,11 +133,10 @@ export default function NewComplaintPage() {
                 title,
                 description,
                 location: location || "Unknown Location",
-                priority: priority || undefined  // Send only if manually selected
+                priority: priority || undefined
             });
-            // Success!
             toast.success("Complaint submitted successfully!");
-            router.push('/dashboard'); // Redirect to dashboard
+            router.push('/dashboard');
         } catch (err: any) {
             console.error(err);
             setError(err.response?.data?.detail || "Failed to submit complaint");
@@ -156,138 +149,151 @@ export default function NewComplaintPage() {
         <main className="min-h-screen pt-24 pb-12 px-6">
             <Navbar />
 
-            <div className="max-w-2xl mx-auto">
-                <GlassCard className="p-8">
-                    <div className="mb-8">
-                        <h1 className="text-2xl font-bold text-white mb-2">New Complaint</h1>
-                        <p className="text-gray-400">Describe the issue and our AI will handle the rest</p>
-                    </div>
-
-                    {error && (
-                        <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-200 text-sm">
-                            {error}
-                        </div>
-                    )}
-
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="space-y-1.5">
-                            <label className="block text-sm font-medium text-gray-300 ml-1">
-                                Title
-                            </label>
-                            <Input
-                                placeholder="e.g., Pothole on Main St"
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                                required
-                            />
-                        </div>
-
-                        <div className="space-y-1.5">
-                            <label className="block text-sm font-medium text-gray-300 ml-1">
-                                Description
-                            </label>
-                            <div className="relative">
-                                <textarea
-                                    className="w-full h-32 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all text-white placeholder:text-gray-500 resize-none"
-                                    placeholder="Describe the issue in detail..."
-                                    value={description}
-                                    onChange={(e) => setDescription(e.target.value)}
-                                    required
-                                />
-                                {isListening && (
-                                    <div className="absolute inset-x-0 bottom-0 p-3 bg-blue-500/10 backdrop-blur-sm rounded-b-xl border-t border-white/5">
-                                        {!isMicrophoneAvailable ? (
-                                            <div className="text-xs text-red-400 font-medium whitespace-nowrap overflow-hidden text-ellipsis">
-                                                ❌ Microphone not detected or access denied
-                                            </div>
-                                        ) : (
-                                            <div className="flex flex-col gap-1 overflow-hidden">
-                                                <div className="flex items-center gap-2 text-xs text-blue-300 animate-pulse">
-                                                    <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
-                                                    <span className="font-medium">
-                                                        {transcribing ? "🔄 Transcribing..." : "Voice Status: Recording..."}
-                                                    </span>
-                                                </div>
-                                                <div className="text-xs text-gray-400 italic truncate">
-                                                    {transcribing ? "Analyzing audio..." : (transcript || "Waiting for audio...")}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
+            <div className="max-w-6xl mx-auto">
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                    {/* Left Column - Complaint Form */}
+                    <div className="lg:col-span-3">
+                        <GlassCard className="p-8">
+                            <div className="mb-8">
+                                <h1 className="text-2xl font-bold text-white mb-2">New Complaint</h1>
+                                <p className="text-gray-400">Describe the issue and our AI will handle the rest</p>
                             </div>
 
-                            {/* AI INSIGHT PANEL */}
-                            <AIInsightPanel analysis={aiAnalysis} loading={analyzing} />
-                        </div>
+                            {error && (
+                                <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-200 text-sm">
+                                    {error}
+                                </div>
+                            )}
 
-                        <div className="space-y-1.5">
-                            <label className="block text-sm font-medium text-gray-300 ml-1">
-                                Location
-                            </label>
-                            <Input
-                                placeholder="e.g., 123 Baker Street"
-                                value={location}
-                                onChange={(e) => setLocation(e.target.value)}
+                            <form onSubmit={handleSubmit} className="space-y-6">
+                                <div className="space-y-1.5">
+                                    <label className="block text-sm font-medium text-gray-300 ml-1">
+                                        Title
+                                    </label>
+                                    <Input
+                                        placeholder="e.g., Pothole on Main St"
+                                        value={title}
+                                        onChange={(e) => setTitle(e.target.value)}
+                                        required
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <div className="flex justify-between items-center mb-1.5">
+                                        <label className="block text-sm font-medium text-gray-300 ml-1">
+                                            Description
+                                        </label>
+                                        <select
+                                            className="bg-transparent text-xs text-gray-400 border-none focus:ring-0 cursor-pointer"
+                                            value={selectedVoiceLang}
+                                            onChange={(e) => setSelectedVoiceLang(e.target.value)}
+                                            disabled={isListening}
+                                        >
+                                            <option value="en-IN">English (India)</option>
+                                            <option value="hi-IN">Hindi (हिंदी)</option>
+                                            <option value="te-IN">Telugu (తెలుగు)</option>
+                                            <option value="ta-IN">Tamil (தமிழ்)</option>
+                                        </select>
+                                    </div>
+                                    <div className="flex gap-2 items-start">
+                                        <div className="relative flex-1">
+                                            <textarea
+                                                className="w-full h-32 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all text-white placeholder:text-gray-500 resize-none"
+                                                placeholder="Describe the issue in detail..."
+                                                value={description}
+                                                onChange={(e) => setDescription(e.target.value)}
+                                                required
+                                            />
+                                            {isListening && (
+                                                <div className="absolute top-3 right-3 flex items-center gap-2">
+                                                    <div className="h-2 w-2 bg-red-500 rounded-full animate-ping"></div>
+                                                    <span className="text-[10px] text-red-400 font-bold uppercase tracking-wider">REC</span>
+                                                </div>
+                                            )}
+                                            {transcribing && (
+                                                <div className="absolute bottom-3 left-3 flex items-center gap-2 text-blue-400">
+                                                    <div className="h-3 w-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider">Processing...</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant={isListening ? "danger" : "secondary"}
+                                            className="h-12 w-12 flex items-center justify-center p-0 flex-shrink-0"
+                                            title="Voice Input"
+                                            onClick={toggleVoiceInput}
+                                        >
+                                            {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="block text-sm font-medium text-gray-300 ml-1">
+                                        Location
+                                    </label>
+                                    <div className="flex gap-2">
+                                        <div className="flex-1">
+                                            <Input
+                                                placeholder="e.g., 123 Baker Street"
+                                                value={location}
+                                                onChange={(e) => setLocation(e.target.value)}
+                                            />
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="secondary"
+                                            className="h-10 w-12 flex items-center justify-center p-0 flex-shrink-0"
+                                            title="Get Current Location"
+                                        >
+                                            <MapPin className="h-5 w-5" />
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                <ImageUploadArea
+                                    images={images}
+                                    setImages={setImages}
+                                />
+
+                                <div className="space-y-1.5">
+                                    <label className="block text-sm font-medium text-gray-300 ml-1">
+                                        Priority (Optional)
+                                    </label>
+                                    <select
+                                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all"
+                                        value={priority}
+                                        onChange={(e) => setPriority(e.target.value)}
+                                    >
+                                        <option value="" className="bg-gray-900">🤖 Auto-detect (AI will classify)</option>
+                                        <option value="Low" className="bg-gray-900">🟢 Low - Minor issues</option>
+                                        <option value="Medium" className="bg-gray-900">🟡 Medium - Standard complaints</option>
+                                        <option value="High" className="bg-gray-900">🟠 High - Urgent matters</option>
+                                        <option value="Critical" className="bg-gray-900">🔴 Critical - Emergency</option>
+                                    </select>
+                                    <p className="text-xs text-gray-500 ml-1">
+                                        Leave as auto-detect for AI to analyze urgency from your description
+                                    </p>
+                                </div>
+
+                                <Button type="submit" className="w-full" size="lg" isLoading={loading} leftIcon={<Send className="h-4 w-4" />}>
+                                    Submit Complaint
+                                </Button>
+                            </form>
+                        </GlassCard>
+                    </div>
+
+                    {/* Right Column - AI Analysis Panel */}
+                    <div className="lg:col-span-2">
+                        <div className="lg:sticky lg:top-28">
+                            <AIAnalysisSidePanel
+                                analysis={aiAnalysis}
+                                loading={analyzing}
                             />
                         </div>
-
-                        <div className="space-y-1.5">
-                            <label className="block text-sm font-medium text-gray-300 ml-1">
-                                Priority (Optional)
-                            </label>
-                            <select
-                                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all font-medium"
-                                value={priority}
-                                onChange={(e) => setPriority(e.target.value)}
-                            >
-                                <option value="" className="bg-gray-900">🤖 Auto-detect (AI will classify)</option>
-                                <option value="Low" className="bg-gray-900">🟢 Low - Minor issues</option>
-                                <option value="Medium" className="bg-gray-900">🟡 Medium - Standard complaints</option>
-                                <option value="High" className="bg-gray-900">🟠 High - Urgent matters</option>
-                                <option value="Critical" className="bg-gray-900">🔴 Critical - Emergency</option>
-                            </select>
-                        </div>
-
-                        <div className="space-y-1.5">
-                            <label className="block text-sm font-medium text-gray-300 ml-1">
-                                Voice Language
-                            </label>
-                            <select
-                                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all font-medium"
-                                value={selectedVoiceLang}
-                                onChange={(e) => setSelectedVoiceLang(e.target.value)}
-                                disabled={isListening}
-                            >
-                                <option value="en-IN" className="bg-gray-900">English (India)</option>
-                                <option value="hi-IN" className="bg-gray-900">Hindi (हिंदी)</option>
-                                <option value="te-IN" className="bg-gray-900">Telugu (తెలుగు)</option>
-                                <option value="ta-IN" className="bg-gray-900">Tamil (தமிழ்)</option>
-                            </select>
-                            <p className="text-xs text-gray-500 ml-1">
-                                Select your language before starting voice input
-                            </p>
-                        </div>
-
-                        <div className="flex gap-4 pt-4">
-                            <Button
-                                type="button"
-                                variant={isListening ? "danger" : "secondary"}
-                                leftIcon={isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                                onClick={toggleVoiceInput}
-                            >
-                                {isListening ? "Stop Recording" : "Voice Input"}
-                            </Button>
-                            <Button type="button" variant="secondary" leftIcon={<MapPin className="h-4 w-4" />}>
-                                Get Location
-                            </Button>
-                        </div>
-
-                        <Button type="submit" className="w-full" size="lg" isLoading={loading} leftIcon={<Send className="h-4 w-4" />}>
-                            Submit Complaint
-                        </Button>
-                    </form>
-                </GlassCard>
+                    </div>
+                </div>
             </div>
         </main>
     );

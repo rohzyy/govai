@@ -2,7 +2,6 @@
 import { GoogleLogin } from '@react-oauth/google';
 import api from '@/lib/api';
 import { useRouter } from 'next/navigation';
-import { Button } from './ui/Button';
 import { useToast } from '@/context/ToastContext';
 
 export default function GoogleLoginButton() {
@@ -68,37 +67,6 @@ export default function GoogleLoginButton() {
         }
     }
 
-    const handleDevLogin = async () => {
-        try {
-            // Using generic safe fetch for login is slightly circular if it requires auth, 
-            // but this is a public endpoint. We'll use api or internal safe fetch if we had a public variant.
-            // Keeping api logic here but wrapped in try/catch as it already is.
-            const res = await api.post('/auth/google', {
-                token: "MOCK_GOOGLE_TOKEN", // Special token handled by backend
-            });
-
-            if (res.data?.token && res.data?.user) {
-                await completeLogin(res.data);
-            } else {
-                if (res.data?.success) {
-                    await completeLogin(res.data.data);
-                } else {
-                    console.warn("Dev login failed:", res.data);
-                    toast.error(res.data?.safeMessage || "Dev login failed.");
-                }
-            }
-        } catch (err: any) {
-            console.error("Dev login failed", err);
-
-            if (err.response?.status === 401) {
-                const detail = err.response?.data?.detail;
-                toast.error(detail || "Dev authentication failed.");
-            } else {
-                toast.error("Dev login failed. Please try again.");
-            }
-        }
-    }
-
     return (
         <div className="flex flex-col gap-3 items-center">
             <GoogleLogin
@@ -111,16 +79,6 @@ export default function GoogleLoginButton() {
                 shape="pill"
                 text="continue_with"
             />
-
-            {/* Dev Mode Validation Button */}
-            <Button
-                variant="ghost"
-                size="sm"
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-lg transition-colors"
-                onClick={handleDevLogin}
-            >
-                (DEV) CLICK TO LOGIN WITHOUT GOOGLE
-            </Button>
         </div>
     );
 }
