@@ -11,12 +11,14 @@ import { useToast } from '@/context/ToastContext';
 import { useDebounce } from '@/hooks/useDebounce';
 import { AIAnalysisSidePanel } from '@/components/ai/AIAnalysisSidePanel';
 import { ImageUploadArea } from '@/components/ImageUploadArea';
+import { useVoiceInput } from '@/hooks/useVoiceInput';
 
 export default function NewComplaintPage() {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [location, setLocation] = useState('');
-    const [images, setImages] = useState<File[]>([]); // New Image State
+    const [priority, setPriority] = useState('');
+    const [images, setImages] = useState<File[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -25,15 +27,23 @@ export default function NewComplaintPage() {
     const [analyzing, setAnalyzing] = useState(false);
     const debouncedDescription = useDebounce(description, 800);
 
-    // Voice State
-    const [isListening, setIsListening] = useState(false);
-    const recognitionRef = useRef<any>(null);
+    const [selectedVoiceLang, setSelectedVoiceLang] = useState<string>('en-IN');
+    const {
+        recording: isListening,
+        transcribing,
+        transcript,
+        resetTranscript,
+        startRecording,
+        stopRecording,
+        error: voiceError
+    } = useVoiceInput();
+    const [lastProcessedTranscript, setLastProcessedTranscript] = useState('');
 
     const router = useRouter();
     const toast = useToast();
 
     useEffect(() => {
-        // FORCE AUTH CHECK (Improved)
+        // FORCE AUTH CHECK
         const token = localStorage.getItem('access_token');
         const cookieToken = document.cookie.match(new RegExp('(^| )access_token=([^;]+)'));
 
@@ -45,69 +55,71 @@ export default function NewComplaintPage() {
 
     // AI Analysis Effect
     useEffect(() => {
+        let isActive = true;
+
         const analyze = async () => {
             if (!debouncedDescription || debouncedDescription.length < 10) {
-                setAiAnalysis(null);
+                if (isActive) setAiAnalysis(null);
                 return;
             }
 
-            setAnalyzing(true);
+            if (isActive) setAnalyzing(true);
             try {
-                // Non-blocking AI Call
-                const res = await api.post('/ai/analyze', { description: debouncedDescription });
-                setAiAnalysis(res.data);
+                if (!isActive) return;
+                const res = await api.post('/helper/scan-text', { description: debouncedDescription });
 
-
+                if (isActive) {
+                    setAiAnalysis(res.data);
+                    // Auto-suggest priority if user hasn't selected one
+                    if (!priority && res.data.confidence > 60) {
+                        setPriority(res.data.priority);
+                    }
+                }
             } catch (err) {
                 console.error("AI Analysis failed silently:", err);
             } finally {
-                setAnalyzing(false);
+                if (isActive) setAnalyzing(false);
             }
         };
 
         analyze();
-    }, [debouncedDescription]);
+
+        return () => {
+            isActive = false;
+        };
+    }, [debouncedDescription, priority]);
 
     // Voice Input Logic
+    useEffect(() => {
+        if (transcript && transcript !== lastProcessedTranscript) {
+            const newText = transcript.slice(lastProcessedTranscript.length);
+            if (newText) {
+                setDescription(prev => prev + (prev && !prev.endsWith(' ') ? ' ' : '') + newText);
+                setLastProcessedTranscript(transcript);
+            }
+        }
+    }, [transcript, lastProcessedTranscript]);
+
+    const lastErrorRef = useRef<string | null>(null);
+
+    useEffect(() => {
+        if (voiceError && voiceError !== lastErrorRef.current) {
+            toast.error(voiceError);
+            lastErrorRef.current = voiceError;
+        } else if (!voiceError) {
+            lastErrorRef.current = null;
+        }
+    }, [voiceError, toast]);
+
     const toggleVoiceInput = () => {
         if (isListening) {
-            recognitionRef.current?.stop();
-            setIsListening(false);
-            return;
-        }
-
-        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-            const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-            recognitionRef.current = new SpeechRecognition();
-            recognitionRef.current.continuous = true;
-            recognitionRef.current.interimResults = true;
-            recognitionRef.current.lang = 'en-IN'; // Default to Indian English
-
-            recognitionRef.current.onstart = () => setIsListening(true);
-
-            recognitionRef.current.onresult = (event: any) => {
-                let finalTranscript = '';
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    if (event.results[i].isFinal) {
-                        finalTranscript += event.results[i][0].transcript;
-                    }
-                }
-                if (finalTranscript) {
-                    setDescription(prev => prev + (prev ? ' ' : '') + finalTranscript);
-                }
-            };
-
-            recognitionRef.current.onerror = (event: any) => {
-                console.error("Speech error", event);
-                setIsListening(false);
-                toast.error("Voice input failed. Please try typing.");
-            };
-
-            recognitionRef.current.onend = () => setIsListening(false);
-
-            recognitionRef.current.start();
+            stopRecording(selectedVoiceLang);
+            setLastProcessedTranscript('');
         } else {
-            toast.error("Voice input is not supported in this browser.");
+            resetTranscript();
+            setLastProcessedTranscript('');
+            startRecording();
+            toast.info("Recording... Speak now");
         }
     };
 
@@ -121,11 +133,10 @@ export default function NewComplaintPage() {
                 title,
                 description,
                 location: location || "Unknown Location",
-
+                priority: priority || undefined
             });
-            // Success!
             toast.success("Complaint submitted successfully!");
-            router.push('/dashboard'); // Redirect to dashboard
+            router.push('/dashboard');
         } catch (err: any) {
             console.error(err);
             setError(err.response?.data?.detail || "Failed to submit complaint");
@@ -167,12 +178,24 @@ export default function NewComplaintPage() {
                                     />
                                 </div>
 
-                                {/* Description with Voice Button Beside it */}
                                 <div className="space-y-1.5">
-                                    <label className="block text-sm font-medium text-gray-300 ml-1">
-                                        Description
-                                    </label>
-                                    <div className="flex gap-2 items-center">
+                                    <div className="flex justify-between items-center mb-1.5">
+                                        <label className="block text-sm font-medium text-gray-300 ml-1">
+                                            Description
+                                        </label>
+                                        <select
+                                            className="bg-transparent text-xs text-gray-400 border-none focus:ring-0 cursor-pointer"
+                                            value={selectedVoiceLang}
+                                            onChange={(e) => setSelectedVoiceLang(e.target.value)}
+                                            disabled={isListening}
+                                        >
+                                            <option value="en-IN">English (India)</option>
+                                            <option value="hi-IN">Hindi (हिंदी)</option>
+                                            <option value="te-IN">Telugu (తెలుగు)</option>
+                                            <option value="ta-IN">Tamil (தமிழ்)</option>
+                                        </select>
+                                    </div>
+                                    <div className="flex gap-2 items-start">
                                         <div className="relative flex-1">
                                             <textarea
                                                 className="w-full h-32 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all text-white placeholder:text-gray-500 resize-none"
@@ -182,8 +205,15 @@ export default function NewComplaintPage() {
                                                 required
                                             />
                                             {isListening && (
-                                                <div className="absolute bottom-3 right-3 animate-pulse">
-                                                    <div className="h-3 w-3 bg-red-500 rounded-full"></div>
+                                                <div className="absolute top-3 right-3 flex items-center gap-2">
+                                                    <div className="h-2 w-2 bg-red-500 rounded-full animate-ping"></div>
+                                                    <span className="text-[10px] text-red-400 font-bold uppercase tracking-wider">REC</span>
+                                                </div>
+                                            )}
+                                            {transcribing && (
+                                                <div className="absolute bottom-3 left-3 flex items-center gap-2 text-blue-400">
+                                                    <div className="h-3 w-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider">Processing...</span>
                                                 </div>
                                             )}
                                         </div>
@@ -197,11 +227,8 @@ export default function NewComplaintPage() {
                                             {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
                                         </Button>
                                     </div>
-
-                                    {/* AI Insight Panel (Mobile only - fallback if needed, currently side panel covers desktop) */}
                                 </div>
 
-                                {/* Location with Map Button Beside it */}
                                 <div className="space-y-1.5">
                                     <label className="block text-sm font-medium text-gray-300 ml-1">
                                         Location
@@ -225,7 +252,6 @@ export default function NewComplaintPage() {
                                     </div>
                                 </div>
 
-                                {/* Image Upload Area */}
                                 <ImageUploadArea
                                     images={images}
                                     setImages={setImages}

@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
         let backendData = null;
         try {
             // FORCE ABSOLUTE URL to prevent baseURL confusion
-            const response = await backendAPI.get('http://127.0.0.1:8000/api/complaints/archived', {
+            const response = await backendAPI.get('/api/complaints/archived', {
                 headers,
                 validateStatus: (status) => status < 500
             });

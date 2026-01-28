@@ -45,7 +45,7 @@ export default function ComplaintDetailModal({
         setLoading(true);
         try {
             const token = localStorage.getItem('access_token');
-            const response = await fetch(`http://localhost:8000/api/complaints/${complaintId}`, {
+            const response = await fetch(`/api/complaints/${complaintId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }

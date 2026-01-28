@@ -4,10 +4,10 @@ import axios, { AxiosInstance } from 'axios';
  * Server-side ONLY Axios instance for Next.js API routes
  * DO NOT import this in client components!
  * 
- * This talks to the FastAPI backend at localhost:8000
+ * This talks to the FastAPI backend at localhost:5000
  */
 
-const BACKEND_URL = process.env.BACKEND_API_URL || 'http://127.0.0.1:8000';
+const BACKEND_URL = process.env.BACKEND_API_URL || 'http://127.0.0.1:5000';
 
 const backendAPI: AxiosInstance = axios.create({
     baseURL: BACKEND_URL,
