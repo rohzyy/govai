@@ -32,7 +32,7 @@ export default function WomenSafetyChatbot() {
     const { authReady, user: currentUser } = useAuth();
 
     // Voice Hook
-    const { isListening, transcript, startListening, stopListening, resetTranscript, error: micError } = useMultilingualSpeech();
+    const { listening: isListening, transcript, startListening, stopListening, resetTranscript, error: micError } = useMultilingualSpeech();
 
     // Auto-scroll
     useEffect(() => {
@@ -277,7 +277,7 @@ export default function WomenSafetyChatbot() {
                                 {/* Voice Button */}
                                 <motion.button
                                     whileTap={{ scale: 0.9 }}
-                                    onClick={isListening ? stopListening : startListening}
+                                    onClick={() => isListening ? stopListening() : startListening()}
                                     className={clsx(
                                         "p-3 rounded-full transition-all shadow-md backdrop-blur-md",
                                         isListening

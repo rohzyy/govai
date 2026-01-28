@@ -17,12 +17,11 @@ import path from 'path';
 const API_KEY = process.env.GEMINI_API_KEY;
 const LOG_FILE = path.join(process.cwd(), 'gemini_server.log');
 
-// Define Model Priority
+// Define Model Priority - Updated for 2025+ API
 const MODEL_PIPELINE = [
-    'models/gemini-2.5-pro',        // Best Quality
-    'models/gemini-1.5-flash-latest', // Likely correct Flash
-    'models/gemini-pro',            // Reliable backup
-    'models/gemini-flash-latest'    // Last resort
+    'gemini-2.0-flash',             // Free, fast, widely available
+    'gemini-1.5-flash',             // Reliable fallback
+    'gemini-1.5-pro',               // High quality backup
 ];
 
 function log(msg: string) {

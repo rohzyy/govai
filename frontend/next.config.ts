@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/api/public/:path*',
-        destination: 'http://127.0.0.1:5000/public/:path*',
+        destination: 'http://127.0.0.1:8000/public/:path*',
       },
       // Fallback for other /api routes if needed, 
       // though explicit routes in app/api/* take precedence.
