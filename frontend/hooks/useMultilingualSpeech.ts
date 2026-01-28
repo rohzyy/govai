@@ -1,71 +1,150 @@
-import 'regenerator-runtime/runtime';
-import { useState, useEffect, useCallback } from 'react';
-import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
-import { SupportedLanguage } from '@/lib/languageUtils';
+"use client";
+
+import { useState, useCallback, useRef } from 'react';
+
+// Define supported language types
+export type SpeechLanguage = 'en-IN' | 'hi-IN' | 'te-IN' | 'ta-IN';
 
 interface UseSpeechResult {
-    isListening: boolean;
+    listening: boolean;
     transcript: string;
-    detectedLang: SupportedLanguage;
     error: string | null;
-    startListening: () => void;
+    isSupported: boolean;
+    startListening: (lang?: SpeechLanguage) => void;
     stopListening: () => void;
     resetTranscript: () => void;
 }
 
+/**
+ * 🎤 FINAL ROBUST SPEECH HOOK
+ * Ensures stability in Next.js + Chrome by using fresh instances and delayed start.
+ */
 export function useMultilingualSpeech(): UseSpeechResult {
-    const [detectedLang, setDetectedLang] = useState<SupportedLanguage>('en-IN');
-    const [customError, setCustomError] = useState<string | null>(null);
+    const [listening, setListening] = useState(false);
+    const [transcript, setTranscript] = useState('');
+    const [error, setError] = useState<string | null>(null);
 
-    const {
-        transcript,
-        listening,
-        resetTranscript: resetLibTranscript,
-        browserSupportsSpeechRecognition,
-        isMicrophoneAvailable
-    } = useSpeechRecognition();
+    // Reference to the active recognition instance for cleanup
+    const recognitionRef = useRef<any>(null);
 
-    useEffect(() => {
-        if (!browserSupportsSpeechRecognition) {
-            setCustomError("Browser does not support Voice");
+    const isSupported = typeof window !== 'undefined' &&
+        (!!(window as any).SpeechRecognition || !!(window as any).webkitSpeechRecognition);
+
+    /**
+     * 🧹 Mandatory Cleanup
+     */
+    const cleanup = useCallback(() => {
+        if (recognitionRef.current) {
+            recognitionRef.current.onstart = null;
+            recognitionRef.current.onresult = null;
+            recognitionRef.current.onerror = null;
+            recognitionRef.current.onend = null;
+            try { recognitionRef.current.abort(); } catch (e) { }
+            recognitionRef.current = null;
         }
-    }, [browserSupportsSpeechRecognition]);
+    }, []);
 
-    const startListening = useCallback(() => {
-        setCustomError(null);
-        if (!isMicrophoneAvailable) {
-            setCustomError("Microphone unavailable");
-            return;
-        }
+    /**
+     * 🚀 Start Recording
+     * Re-initializes a fresh instance on every call.
+     */
+    const startListening = useCallback((lang: SpeechLanguage = 'en-IN') => {
+        if (!isSupported) return;
 
-        try {
-            // Start continuous listening in the user's preferred language (defaulting to English for now)
-            // You can dynamically change 'language' here based on 'detectedLang' state if you had a language selector.
-            SpeechRecognition.startListening({
-                continuous: true,
-                language: detectedLang
-            });
-        } catch (e) {
-            console.error("Speech Start Error:", e);
-            setCustomError("Voice engine error");
-        }
-    }, [detectedLang, isMicrophoneAvailable]);
+        // Ensure page is visible to avoid network drops
+        if (document.visibilityState !== 'visible') return;
+
+        // Reset previous state
+        cleanup();
+        setError(null);
+
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        const rec = new SpeechRecognition();
+
+        // Requirements: No continuous, no interim (maximum stability)
+        rec.continuous = false;
+        rec.interimResults = false;
+        rec.maxAlternatives = 1;
+        rec.lang = lang;
+
+        rec.onstart = () => {
+            setListening(true);
+            console.log("[Speech] Active");
+        };
+
+        rec.onresult = (event: any) => {
+            const text = event.results[0][0].transcript;
+            console.log("[Speech] Result:", text);
+            setTranscript(prev => prev + (prev && !prev.endsWith(' ') ? ' ' : '') + text);
+        };
+
+        rec.onerror = (event: any) => {
+            console.error("[Speech] Error:", event.error);
+            // Handle "network" or "fatal" states by resetting
+            if (event.error === 'network') {
+                setError("Network error. Please try again in 1 second.");
+            } else {
+                setError(`Voice error: ${event.error}`);
+            }
+            setListening(false);
+            cleanup();
+        };
+
+        rec.onend = () => {
+            setListening(false);
+            cleanup();
+        };
+
+        recognitionRef.current = rec;
+
+        // ⏱ 500ms delay to avoid Chrome network service race conditions
+        setTimeout(() => {
+            if (recognitionRef.current === rec) {
+                try { rec.start(); } catch (e) {
+                    setError("Failed to start speech engine.");
+                    cleanup();
+                }
+            }
+        }, 500);
+
+    }, [isSupported, cleanup]);
 
     const stopListening = useCallback(() => {
-        SpeechRecognition.stopListening();
+        if (recognitionRef.current) {
+            try { recognitionRef.current.stop(); } catch (e) { }
+        }
     }, []);
 
     const resetTranscript = useCallback(() => {
-        resetLibTranscript();
-    }, [resetLibTranscript]);
+        setTranscript('');
+    }, []);
 
     return {
-        isListening: listening,
+        listening,
         transcript,
-        detectedLang,
-        error: customError,
+        error,
+        isSupported,
         startListening,
         stopListening,
         resetTranscript
     };
 }
+
+/**
+ * 📝 MINIMAL USAGE EXAMPLE:
+ * 
+ * function MyComponent() {
+ *   const { listening, transcript, startListening, stopListening, isSupported } = useMultilingualSpeech();
+ *   
+ *   if (!isSupported) return <span>Voice not supported</span>;
+ *
+ *   return (
+ *     <div>
+ *       <button onClick={() => listening ? stopListening() : startListening('hi-IN')}>
+ *         {listening ? "Stop" : "Speak Hindi"}
+ *       </button>
+ *       <p>{transcript}</p>
+ *     </div>
+ *   );
+ * }
+ */

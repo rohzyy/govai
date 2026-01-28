@@ -113,7 +113,7 @@ export function ResolveComplaintModal({
                         Cancel
                     </Button>
                     <Button
-                        variant="default"
+                        variant="primary"
                         onClick={handleConfirm}
                         className="flex-1 bg-green-600 hover:bg-green-700"
                         isLoading={loading}

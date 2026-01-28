@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
-from .routes import auth_routes, complaint_routes, admin_routes, officer_routes, women_safety, debug_routes, public_routes
+from .routes import auth_routes, complaint_routes, admin_routes, officer_routes, women_safety, debug_routes, public_routes, ai_routes
 from .config import settings
 
 # Create Tables
@@ -18,7 +18,13 @@ origins = ["http://localhost:3000"]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    # allow_origins=["*"], # INVALID with allow_credentials=True
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:5000", 
+        "http://127.0.0.1:5000"
+    ],
     allow_credentials=True, # Critical for Cookies
     allow_methods=["*"],
     allow_headers=["*", "Authorization", "Content-Type", "Access-Control-Allow-Origin"],
@@ -48,7 +54,6 @@ app.include_router(complaint_routes.router)
 app.include_router(admin_routes.router)
 app.include_router(officer_routes.router)
 app.include_router(women_safety.router)
-from .routes import ai_routes
 app.include_router(ai_routes.router)
 app.include_router(debug_routes.router)
 app.include_router(public_routes.router)
@@ -60,6 +65,13 @@ from .utils.startup_check import validate_routes
 @app.on_event("startup")
 async def startup_event():
     # validate_routes(app)
+    from .config import settings
+    key = settings.STT_API_KEY
+    print(f"[STARTUP] Loaded STT_API_KEY: ...{key[-4:] if key else 'None'}")
+    if not key or "AIzaSyCX" in key:
+        print("[STARTUP] STT_API_KEY status: MISSING/PLACEHOLDER (Transcription will fail)")
+    else:
+        print("[STARTUP] STT_API_KEY status: CONFIGURED (Ready for AI features)")
     pass
 
 

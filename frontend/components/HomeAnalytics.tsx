@@ -18,7 +18,7 @@ export function HomeAnalytics() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const res = await api.get('/public/analytics/overview');
+                const res = await api.get('/public/stats/overview');
                 setData(res.data);
             } catch (error) {
                 console.error("Failed to fetch public analytics", error);
