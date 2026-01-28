@@ -1,25 +1,4 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-venv/
+# ignore environment files
 .env
-
-# Next.js
-.next/
-out/
-build/
-node_modules/
-.env*.local
-
-# Database
-*.db
-*.sqlite
-
-# IDEs
-.vscode/
-.idea/
-
-# OS
-.DS_Store
-Thumbs.db
+.env.local
+.env.*.local
